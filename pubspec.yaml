@@ -1,0 +1,34 @@
+name: flutter_transmission
+description: A new Flutter package.
+version: 0.0.1
+homepage: https://github.com/jaumard/flutter_transmission
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+
+dependencies:
+  transmission: ^0.0.1
+    #path: '../transmission'
+  provider: ^4.3.1
+  mobx: ^1.2.1+1
+  flutter_svg: ^0.18.0
+  flutter_mobx: ^1.1.0+1
+  flutter_hooks: ^0.13.0
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  mobx_codegen: ^1.1.0+1
+  build_runner: ^1.10.1
+  flutter_test:
+    sdk: flutter
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter.
+flutter:
+
+  # To add assets to your package, add an assets section, like this:
+  assets:
+     - assets/images/
