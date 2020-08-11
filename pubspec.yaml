@@ -1,7 +1,7 @@
 name: flutter_transmission
 description: A new Flutter package.
 version: 0.0.1
-homepage: https://github.com/jaumard/flutter_transmission
+homepage: https://github.com/mylisabox/flutter_transmission
 
 environment:
   sdk: ">=2.7.0 <3.0.0"
@@ -9,10 +9,10 @@ environment:
 dependencies:
   transmission: ^0.0.1
     #path: '../transmission'
-  provider: ^4.3.1
-  mobx: ^1.2.1+1
+  provider: ^4.3.2
+  mobx: ^1.2.1+2
   flutter_svg: ^0.18.0
-  flutter_mobx: ^1.1.0+1
+  flutter_mobx: ^1.1.0+2
   flutter_hooks: ^0.13.0
   flutter:
     sdk: flutter

@@ -1,6 +1,6 @@
 # flutter_transmission
 
-Flutter package to talk to a Transmission torrent instance, for a pure dart package please check [transmission](https://github.com/jaumard/transmission)
+Flutter package to talk to a Transmission torrent instance, for a pure dart package please check [transmission](https://github.com/mylisabox/transmission)
 
 ## Setup
 
