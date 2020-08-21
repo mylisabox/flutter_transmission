@@ -32,33 +32,36 @@ class TransmissionScreen extends StatelessWidget {
   final bool enableStatusBar;
   final bool enableRealTimeButton;
   final bool enableAddTorrentButton;
+  final bool headless;
+  final Color iconActiveColor;
   final List<Widget> actions;
 
   const TransmissionScreen({
     Key key,
     this.title = 'Transmission',
+    this.iconActiveColor = Colors.blueAccent,
     this.enableRealTimeButton = true,
     this.enableAddTorrentButton = true,
     this.enableTopBarButtons = true,
     this.enableStatusBar = true,
+    this.headless = false,
     this.actions = const [],
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        actions: <Widget>[
-          if (enableRealTimeButton) RealTimeActionButton(),
-          ...actions
-        ],
-        bottom: enableTopBarButtons ? TransmissionGlobalActions() : null,
-      ),
+      appBar: headless
+          ? null
+          : AppBar(
+              title: Text(title),
+              actions: <Widget>[if (enableRealTimeButton) RealTimeActionButton(), ...actions],
+              bottom: enableTopBarButtons ? TransmissionGlobalActions() : null,
+            ),
       body: TorrentList(),
       bottomNavigationBar: enableStatusBar
           ? Container(
-              child: TransmissionStatusBar(),
+              child: TransmissionStatusBar(iconActiveColor: iconActiveColor),
               color: Theme.of(context).primaryColor,
             )
           : null,
@@ -93,23 +96,35 @@ class TorrentList extends HookWidget {
     }, const []);
 
     return Observer(
-      builder: (context) => RefreshIndicator(
-        key: refreshKey,
-        child: ListView.separated(
-          itemBuilder: (context, index) {
-            return TorrentListItem(
-              torrent: store.torrents.value[index],
-            );
+      builder: (context) {
+        final total = store.torrents.value?.length ?? 0;
+        return RefreshIndicator(
+          key: refreshKey,
+          child: Stack(
+            children: [
+              if (total == 0)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text('Currently no torrent in transmission'),
+                ),
+              ListView.separated(
+                itemBuilder: (context, index) {
+                  return TorrentListItem(
+                    torrent: store.torrents.value[index],
+                  );
+                },
+                itemCount: total,
+                separatorBuilder: (BuildContext context, int index) {
+                  return Divider();
+                },
+              ),
+            ],
+          ),
+          onRefresh: () {
+            return store.loadTorrents();
           },
-          itemCount: store.torrents.value?.length ?? 0,
-          separatorBuilder: (BuildContext context, int index) {
-            return Divider();
-          },
-        ),
-        onRefresh: () {
-          return store.loadTorrents();
-        },
-      ),
+        );
+      },
     );
   }
 }
@@ -284,6 +299,7 @@ class TransmissionSettingsDialog extends StatelessWidget {
   final String title;
 
   const TransmissionSettingsDialog({Key key, this.title = 'Settings'}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
