@@ -1,13 +1,13 @@
 name: flutter_transmission
 description: Flutter package to talk to a Transmission torrent instance, for a pure dart package please check [transmission](https://github.com/mylisabox/transmission)
-version: 0.0.2
+version: 0.0.3
 homepage: https://github.com/mylisabox/flutter_transmission
 
 environment:
   sdk: ">=2.7.0 <3.0.0"
 
 dependencies:
-  transmission: ">=0.0.1 <1.0.0"
+  transmission: ">=0.0.2 <1.0.0"
     #path: '../transmission'
   provider: ">=4.3.2 <5.0.0"
   mobx: ">=1.2.1 <2.0.0"

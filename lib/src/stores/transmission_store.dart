@@ -20,7 +20,7 @@ abstract class _TransmissionStore with Store {
 
   static ObservableFuture<ObservableList<Torrent>> emptyResponse = ObservableFuture.value(ObservableList.of([]));
 
-  _TransmissionStore({String baseUrl, bool enableLog = false}) : _transmission = Transmission(baseUrl: baseUrl, enableLog: enableLog);
+  _TransmissionStore({String baseUrl, String proxyUrl, bool enableLog = false}) : _transmission = Transmission(baseUrl: baseUrl, proxyUrl:proxyUrl, enableLog: enableLog);
 
   @observable
   ObservableFuture<ObservableList<Torrent>> torrents = emptyResponse;

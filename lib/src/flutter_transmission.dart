@@ -9,16 +9,17 @@ import 'package:transmission/transmission.dart';
 /// A [TransmissionScope] that allow setting up ground work to talk to a transmission instance
 class TransmissionScope extends StatelessWidget {
   final String baseUrl;
+  final String proxyUrl;
   final bool enableLog;
   final Widget child;
 
   /// [baseUrl] string URL of the transmission remote instance, default to http://localhost:9091/transmission/rpc
-  const TransmissionScope({Key key, this.baseUrl, this.child, this.enableLog = false}) : super(key: key);
+  const TransmissionScope({Key key, this.baseUrl, this.proxyUrl, this.child, this.enableLog = false}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Provider<TransmissionStore>(
-      create: (_) => TransmissionStore(baseUrl: baseUrl, enableLog: enableLog),
+      create: (_) => TransmissionStore(baseUrl: baseUrl, proxyUrl:proxyUrl, enableLog: enableLog),
       dispose: (_, store) => store.dispose(),
       child: child,
     );
