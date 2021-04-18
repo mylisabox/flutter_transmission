@@ -1,3 +1,8 @@
+## [0.1.0] - 18/04/2021
+
+* migrate to null safety
+* better error handling
+
 ## [0.0.3] - 22/01/2021
 
 * Add proxy url capabilities

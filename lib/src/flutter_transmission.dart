@@ -8,18 +8,25 @@ import 'package:transmission/transmission.dart';
 
 /// A [TransmissionScope] that allow setting up ground work to talk to a transmission instance
 class TransmissionScope extends StatelessWidget {
-  final String baseUrl;
-  final String proxyUrl;
+  final String? baseUrl;
+  final String? proxyUrl;
   final bool enableLog;
   final Widget child;
 
   /// [baseUrl] string URL of the transmission remote instance, default to http://localhost:9091/transmission/rpc
-  const TransmissionScope({Key key, this.baseUrl, this.proxyUrl, this.child, this.enableLog = false}) : super(key: key);
+  const TransmissionScope(
+      {Key? key,
+      this.baseUrl,
+      this.proxyUrl,
+      required this.child,
+      this.enableLog = false})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Provider<TransmissionStore>(
-      create: (_) => TransmissionStore(baseUrl: baseUrl, proxyUrl:proxyUrl, enableLog: enableLog),
+      create: (_) => TransmissionStore(
+          baseUrl: baseUrl, proxyUrl: proxyUrl, enableLog: enableLog),
       dispose: (_, store) => store.dispose(),
       child: child,
     );
@@ -38,7 +45,7 @@ class TransmissionScreen extends StatelessWidget {
   final List<Widget> actions;
 
   const TransmissionScreen({
-    Key key,
+    Key? key,
     this.title = 'Transmission',
     this.iconActiveColor = Colors.blueAccent,
     this.enableRealTimeButton = true,
@@ -56,7 +63,10 @@ class TransmissionScreen extends StatelessWidget {
           ? null
           : AppBar(
               title: Text(title),
-              actions: <Widget>[if (enableRealTimeButton) RealTimeActionButton(), ...actions],
+              actions: <Widget>[
+                if (enableRealTimeButton) RealTimeActionButton(),
+                ...actions
+              ],
               bottom: enableTopBarButtons ? TransmissionGlobalActions() : null,
             ),
       body: TorrentList(),
@@ -85,8 +95,8 @@ class TorrentList extends HookWidget {
 
     useEffect(() {
       store.toggleRealTime();
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        refreshKey.currentState.show();
+      WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
+        refreshKey.currentState!.show();
       });
       return () {
         //when disposed let's pause the realtime pooling
@@ -99,26 +109,33 @@ class TorrentList extends HookWidget {
     return Observer(
       builder: (context) {
         final total = store.torrents.value?.length ?? 0;
+        final error = store.refreshTorrentError;
         return RefreshIndicator(
           key: refreshKey,
           child: Stack(
             children: [
-              if (total == 0)
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text('Error: $error'),
+                ),
+              if (error == null && total == 0)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text('Currently no torrent in transmission'),
                 ),
-              ListView.separated(
-                itemBuilder: (context, index) {
-                  return TorrentListItem(
-                    torrent: store.torrents.value[index],
-                  );
-                },
-                itemCount: total,
-                separatorBuilder: (BuildContext context, int index) {
-                  return Divider();
-                },
-              ),
+              if (error == null)
+                ListView.separated(
+                  itemBuilder: (context, index) {
+                    return TorrentListItem(
+                      torrent: store.torrents.value![index],
+                    );
+                  },
+                  itemCount: total,
+                  separatorBuilder: (BuildContext context, int index) {
+                    return Divider();
+                  },
+                ),
             ],
           ),
           onRefresh: () {
@@ -142,13 +159,17 @@ enum _TorrentAction {
 class TorrentListItem extends StatelessWidget {
   final Torrent torrent;
 
-  const TorrentListItem({Key key, this.torrent}) : super(key: key);
+  const TorrentListItem({Key? key, required this.torrent}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    var progressColor = torrent.isMetadataDownloaded ? Theme.of(context).backgroundColor : Colors.redAccent;
-    var valueColor = torrent.isMetadataDownloaded ? Theme.of(context).accentColor : Colors.red;
-    if (torrent.isFinished) {
+    var progressColor = torrent.isMetadataDownloaded
+        ? Theme.of(context).backgroundColor
+        : Colors.redAccent;
+    var valueColor = torrent.isMetadataDownloaded
+        ? Theme.of(context).accentColor
+        : Colors.red;
+    if (torrent.isFinished!) {
       progressColor = Colors.green;
       valueColor = Colors.transparent;
     }
@@ -163,14 +184,17 @@ class TorrentListItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            torrent.name,
+            torrent.name!,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.headline6,
           ),
           Text(
             torrent.isMetadataDownloaded
-                ? torrent.prettyCurrentSize + ' on ' + torrent.prettyTotalSize + ' (${torrent.percentDone.toStringAsFixed(1) + '%'})'
+                ? torrent.prettyCurrentSize +
+                    ' on ' +
+                    torrent.prettyTotalSize +
+                    ' (${torrent.percentDone!.toStringAsFixed(1) + '%'})'
                 : 'Need metadata',
             style: Theme.of(context).textTheme.caption,
           ),
@@ -183,7 +207,10 @@ class TorrentListItem extends StatelessWidget {
                   child: SizedBox(
                     height: 15,
                     child: LinearProgressIndicator(
-                      value: (torrent.isMetadataDownloaded ? torrent.percentDone : torrent.metadataPercentComplete) / 100,
+                      value: (torrent.isMetadataDownloaded
+                              ? torrent.percentDone
+                              : torrent.metadataPercentComplete)! /
+                          100,
                       backgroundColor: progressColor,
                       valueColor: AlwaysStoppedAnimation<Color>(valueColor),
                     ),
@@ -192,11 +219,16 @@ class TorrentListItem extends StatelessWidget {
                 IconButton(
                   icon: Icon(torrent.status == 0 ? Icons.refresh : Icons.pause),
                   onPressed: () async {
-                    final store = Provider.of<TransmissionStore>(context, listen: false);
+                    final store =
+                        Provider.of<TransmissionStore>(context, listen: false);
                     if (torrent.status == 0) {
-                      await store.startTorrent(torrent);
+                      await store.startTorrent(torrent).catchError((err) {
+                        _showErrors(context, title: 'Error', description: '$err');
+                      });
                     } else {
-                      await store.stopTorrent(torrent);
+                      await store.stopTorrent(torrent).catchError((err) {
+                        _showErrors(context, title: 'Error', description: '$err');
+                      });
                     }
                   },
                 ),
@@ -227,10 +259,12 @@ class TorrentListItem extends StatelessWidget {
                   },
                   tooltip: 'More actions on torrent',
                   onSelected: (selected) async {
-                    final store = Provider.of<TransmissionStore>(context, listen: false);
+                    final store =
+                        Provider.of<TransmissionStore>(context, listen: false);
                     switch (selected) {
                       case _TorrentAction.delete:
-                        if (await _showConfirm(context, 'Delete torrent?', 'Are you sure you want to delete this torrent?')) {
+                        if (await _showConfirm(context, 'Delete torrent?',
+                            'Are you sure you want to delete this torrent?')) {
                           store.deleteTorrent(torrent, false).catchError((ex) {
                             _showErrors(context);
                           });
@@ -238,14 +272,17 @@ class TorrentListItem extends StatelessWidget {
                         break;
                       case _TorrentAction.deleteWithData:
                         if (await _showConfirm(
-                            context, 'Delete torrent with local data?', 'Are you sure you want to delete this torrent and all related data?')) {
+                            context,
+                            'Delete torrent with local data?',
+                            'Are you sure you want to delete this torrent and all related data?')) {
                           store.deleteTorrent(torrent, false).catchError((ex) {
                             _showErrors(context);
                           });
                         }
                         break;
                       case _TorrentAction.move:
-                        _showPrompt(context, 'Move torrent', 'Path', (text) async {
+                        _showPrompt(context, 'Move torrent', 'Path',
+                            (text) async {
                           try {
                             store.moveTorrent(torrent, text, false);
                             Navigator.of(context).pop();
@@ -258,7 +295,8 @@ class TorrentListItem extends StatelessWidget {
                         });
                         break;
                       case _TorrentAction.rename:
-                        _showPrompt(context, 'Rename torrent', 'Name', (text) async {
+                        _showPrompt(context, 'Rename torrent', 'Name',
+                            (text) async {
                           try {
                             store.renameTorrent(torrent, text);
                             Navigator.of(context).pop();
@@ -299,7 +337,8 @@ class TorrentListItem extends StatelessWidget {
 class TransmissionSettingsDialog extends StatelessWidget {
   final String title;
 
-  const TransmissionSettingsDialog({Key key, this.title = 'Settings'}) : super(key: key);
+  const TransmissionSettingsDialog({Key? key, this.title = 'Settings'})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -310,7 +349,7 @@ class TransmissionSettingsDialog extends StatelessWidget {
         child: TransmissionSettings(),
       ),
       actions: [
-        FlatButton(
+        TextButton(
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -347,7 +386,8 @@ class TransmissionSettings extends StatelessWidget {
                 Expanded(
                   child: HookBuilder(
                     builder: (context) {
-                      final controller = useTextEditingController(text: value, keys: [value]);
+                      final TextEditingController? controller =
+                          useTextEditingController(text: value, keys: [value]);
                       return TextField(
                         keyboardType: TextInputType.number,
                         controller: controller,
@@ -383,7 +423,8 @@ class TransmissionSettings extends StatelessWidget {
                 Expanded(
                   child: HookBuilder(
                     builder: (context) {
-                      final controller = useTextEditingController(text: value, keys: [value]);
+                      final TextEditingController? controller =
+                          useTextEditingController(text: value, keys: [value]);
                       return TextField(
                         controller: controller,
                         enabled: speedLimitDownEnable,
@@ -430,7 +471,8 @@ class TransmissionSettings extends StatelessWidget {
         HookBuilder(
           builder: (context) {
             final value = store.session[altSpeedUpKey].toString();
-            final controller = useTextEditingController(text: value, keys: [value]);
+            final TextEditingController? controller =
+                useTextEditingController(text: value, keys: [value]);
             return TextField(
               controller: controller,
               decoration: InputDecoration(
@@ -449,7 +491,8 @@ class TransmissionSettings extends StatelessWidget {
         HookBuilder(
           builder: (context) {
             final value = store.session[altSpeedDownKey].toString();
-            final controller = useTextEditingController(text: value, keys: [value]);
+            final TextEditingController? controller =
+                useTextEditingController(text: value, keys: [value]);
 
             return TextField(
               controller: controller,
@@ -472,7 +515,8 @@ class TransmissionSettings extends StatelessWidget {
 }
 
 /// Action bar that allow to stop or start all torrents at once
-class TransmissionGlobalActions extends StatelessWidget implements PreferredSizeWidget {
+class TransmissionGlobalActions extends StatelessWidget
+    implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -480,16 +524,22 @@ class TransmissionGlobalActions extends StatelessWidget implements PreferredSize
         IconButton(
           icon: Icon(Icons.play_circle_outline),
           onPressed: () {
-            final store = Provider.of<TransmissionStore>(context, listen: false);
-            store.startAllTorrent();
+            final store =
+                Provider.of<TransmissionStore>(context, listen: false);
+            store.startAllTorrent().catchError((err) {
+              _showErrors(context, title: 'Error', description: '$err');
+            });
           },
           tooltip: 'Start all torrents',
         ),
         IconButton(
           icon: Icon(Icons.pause_circle_outline),
           onPressed: () {
-            final store = Provider.of<TransmissionStore>(context, listen: false);
-            store.stopAllTorrent();
+            final store =
+                Provider.of<TransmissionStore>(context, listen: false);
+            store.stopAllTorrent().catchError((err) {
+              _showErrors(context, title: 'Error', description: '$err');
+            });
           },
           tooltip: 'Pause all torrents',
         ),
@@ -505,7 +555,9 @@ class TransmissionGlobalActions extends StatelessWidget implements PreferredSize
 class TransmissionStatusBar extends StatelessWidget {
   final Color iconActiveColor;
 
-  const TransmissionStatusBar({Key key, this.iconActiveColor = Colors.blueAccent}) : super(key: key);
+  const TransmissionStatusBar(
+      {Key? key, this.iconActiveColor = Colors.blueAccent})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -523,7 +575,9 @@ class TransmissionStatusBar extends StatelessWidget {
                     reEnableRealTime = true;
                     store.toggleRealTime();
                   }
-                  await showDialog(context: context, builder: (context) => TransmissionSettingsDialog());
+                  await showDialog(
+                      context: context,
+                      builder: (context) => TransmissionSettingsDialog());
                   if (reEnableRealTime) {
                     store.toggleRealTime();
                   }
@@ -533,17 +587,25 @@ class TransmissionStatusBar extends StatelessWidget {
                 builder: (context) => SvgPicture.asset(
                   'assets/images/turtle.svg',
                   package: 'flutter_transmission',
-                  color: store.altSpeedEnabled ? iconActiveColor : Theme.of(context).iconTheme.color,
+                  color: store.altSpeedEnabled
+                      ? iconActiveColor
+                      : Theme.of(context).iconTheme.color,
                 ),
               ),
               onPressed: () {
-                store.setSession({altSpeedKey: !store.altSpeedEnabled});
+                store.setSession({altSpeedKey: !store.altSpeedEnabled})
+                .catchError((err) {
+                  _showErrors(context, title: 'Error', description: '$err');
+                });
               },
             ),
             Spacer(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Observer(builder: (context) => Text('${store.torrents.value?.length ?? 0} transfers')),
+              child: Observer(
+                builder: (context) =>
+                    Text('${store.torrents.value?.length ?? 0} transfers'),
+              ),
             ),
           ],
         ),
@@ -555,7 +617,7 @@ class TransmissionStatusBar extends StatelessWidget {
 class _TorrentStatus extends StatelessWidget {
   final Torrent torrent;
 
-  const _TorrentStatus({Key key, this.torrent}) : super(key: key);
+  const _TorrentStatus({Key? key, required this.torrent}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -571,11 +633,12 @@ class _TorrentStatus extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Expanded(
-                child: Text('${torrent.statusDescription} ↓ ' +
-                    torrent.prettyRateDownload +
-                    ' | ↑ ' +
-                    torrent.prettyRateUpload +
-                    ' from ${torrent.peersSendingToUs}/${torrent.peersConnected} peers')),
+              child: Text('${torrent.statusDescription} ↓ ' +
+                  torrent.prettyRateDownload +
+                  ' | ↑ ' +
+                  torrent.prettyRateUpload +
+                  ' from ${torrent.peersSendingToUs}/${torrent.peersConnected} peers'),
+            ),
           ],
         );
     }
@@ -591,9 +654,13 @@ class RealTimeActionButton extends StatelessWidget {
     return Observer(
       builder: (context) => IconButton(
         tooltip: 'Toggle real time information',
-        icon: Icon(store.realTimePool ? Icons.pause_circle_outline : Icons.play_circle_outline),
+        icon: Icon(store.realTimePool
+            ? Icons.pause_circle_outline
+            : Icons.play_circle_outline),
         onPressed: () {
-          store.toggleRealTime();
+          store.toggleRealTime().catchError((err) {
+            _showErrors(context, title: 'Error', description: '$err');
+          });
         },
       ),
     );
@@ -609,7 +676,8 @@ class AddTorrentActionButton extends StatelessWidget {
   /// Button to give possibility to add a torrent by giving the URL of it
   /// It will open a dialog asking for the URL of the torrent
   /// set [isFloatingButton] to true if you want to have floating button look like, default to false
-  const AddTorrentActionButton({Key key, this.isFloatingButton = false}) : super(key: key);
+  const AddTorrentActionButton({Key? key, this.isFloatingButton = false})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -641,28 +709,36 @@ class AddTorrentActionButton extends StatelessWidget {
   }
 }
 
-Future<bool> _showConfirm(BuildContext context, String title, String description) async {
+Future<bool> _showConfirm(
+    BuildContext context, String title, String description) async {
   return await showDialog(
         context: context,
         builder: (context) => AlertDialog(
           title: Text(title),
           content: Text(description),
           actions: <Widget>[
-            FlatButton(onPressed: () => Navigator.of(context).pop(true), child: Text(MaterialLocalizations.of(context).okButtonLabel)),
-            FlatButton(onPressed: () => Navigator.of(context).pop(false), child: Text(MaterialLocalizations.of(context).cancelButtonLabel)),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(MaterialLocalizations.of(context).okButtonLabel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+            ),
           ],
         ),
       ) ??
       false;
 }
 
-Future<bool> _showPrompt(BuildContext context, String title, String label, void Function(String text) onOk) async {
+Future<bool?> _showPrompt(BuildContext context, String title, String label,
+    void Function(String text) onOk) async {
   return await showDialog(
     context: context,
     builder: (context) {
       return HookBuilder(
         builder: (context) {
-          final controller = useTextEditingController();
+          final TextEditingController? controller = useTextEditingController();
           return AlertDialog(
             title: Text(title),
             content: TextField(
@@ -673,15 +749,16 @@ Future<bool> _showPrompt(BuildContext context, String title, String label, void 
               ),
             ),
             actions: <Widget>[
-              FlatButton(
+              TextButton(
                 onPressed: () {
-                  onOk(controller.text);
+                  onOk(controller!.text);
                 },
                 child: Text(MaterialLocalizations.of(context).okButtonLabel),
               ),
-              FlatButton(
+              TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+                child:
+                    Text(MaterialLocalizations.of(context).cancelButtonLabel),
               ),
             ],
           );
@@ -694,15 +771,18 @@ Future<bool> _showPrompt(BuildContext context, String title, String label, void 
 void _showErrors(
   BuildContext context, {
   String title = 'Ooops',
-  String description = 'Sorry an error as occurred',
+  String? description = 'Sorry an error as occurred',
 }) {
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(title),
-      content: Text(description),
+      content: Text(description!),
       actions: <Widget>[
-        FlatButton(onPressed: () => Navigator.of(context).pop(), child: Text(MaterialLocalizations.of(context).okButtonLabel)),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(MaterialLocalizations.of(context).okButtonLabel),
+        ),
       ],
     ),
   );
