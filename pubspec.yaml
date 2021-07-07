@@ -1,6 +1,6 @@
 name: flutter_transmission
 description: Flutter package to talk to a Transmission torrent instance, for a pure dart package please check [transmission](https://github.com/mylisabox/transmission)
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/mylisabox/flutter_transmission
 
 environment:

@@ -124,7 +124,7 @@ abstract class _TransmissionStore with Store {
   @action
   Future<void> getSession() async {
     session = ObservableMap.of(
-        await (_transmission.getSession() as FutureOr<Map<String, dynamic>>));
+        await _transmission.getSession());
     altSpeedEnabled = session[altSpeedKey] ?? false;
   }
 
@@ -185,8 +185,7 @@ abstract class _TransmissionStore with Store {
   }
 
   Future<ObservableList<Torrent>> _loadTorrents() async {
-    return ObservableList.of(
-        await (_transmission.getTorrents() as FutureOr<Iterable<Torrent>>));
+    return ObservableList.of(await _transmission.getTorrents());
   }
 
   void dispose() {
