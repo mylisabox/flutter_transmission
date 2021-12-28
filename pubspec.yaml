@@ -7,7 +7,7 @@ environment:
   sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
-  transmission: ">=0.1.0 <1.0.0"
+  transmission: ">=0.1.1 <1.0.0"
    # path: '../transmission'
   provider: ">=6.0.0 <7.0.0"
   mobx: ">=2.0.1 <3.0.0"
