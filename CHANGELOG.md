@@ -1,3 +1,7 @@
+## [0.1.2] - 28/12/2021
+
+* update deps
+
 ## [0.1.1] - 07/07/2021
 
 * fix null safety issues
